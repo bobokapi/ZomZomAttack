@@ -16,14 +16,23 @@ ZomZomAttack::ZomZomAttack(QWidget *parent) : QFrame(parent) {
 	
 	points = 0;
 	health = 100;
-	level = 1;
+	level = 0;
 }
 
 /* The destructor deletes heap memory */
 ZomZomAttack::~ZomZomAttack() {
 	delete player;
+	for (int i = 0; i < zomzom.size(); i++) {
+		delete zomzom[i];
+	}
 	zomzom.clear();
+	for (int i = 0; i < zBullets.size(); i++) {
+		delete zBullets[i];
+	}
 	zBullets.clear();
+	for (int i = 0; i < pBullets.size(); i++) {
+		delete pBullets[i];
+	}
 	pBullets.clear();
 }
 
@@ -31,24 +40,14 @@ ZomZomAttack::~ZomZomAttack() {
 void ZomZomAttack::paintEvent(QPaintEvent *event) {
 	QPainter painter(this);
 	
-	if (level == 1) painter.drawPixmap(rect(), QPixmap("wave.png"));
-	else if (level == 2) painter.drawPixmap(rect(), QPixmap("cat.png"));
-	else if (level == 3) painter.drawPixmap(rect(), QPixmap("skulls.png"));
-	else if (level == 4) painter.drawPixmap(rect(), QPixmap("cat.png"));
-	else painter.drawPixmap(rect(), QPixmap("wave.png"));
-	
-	if (gameOver) {
-		QFont font("Courier", 15, QFont::DemiBold);
-		QFontMetrics fm(font);
-		int textWidth = fm.width("Game Over");
-
-		painter.setFont(font);
-		int h = height();
-		int w = width();
-
-		painter.translate(QPoint(w / 2, h / 2));
-		painter.drawText(-textWidth / 2, 0, "Game Over");
-	} else {
+	if (gameOver) painter.drawPixmap(rect(), QPixmap("gameover.png"));
+	else {
+		if (level == 1) painter.drawPixmap(rect(), QPixmap("level1.png"));
+		else if (level == 2) painter.drawPixmap(rect(), QPixmap("level2.png"));
+		else if (level == 3) painter.drawPixmap(rect(), QPixmap("level3.png"));
+		else if (level == 4) painter.drawPixmap(rect(), QPixmap("level4.png"));
+		else painter.drawPixmap(rect(), QPixmap("start.png"));
+		
 		painter.drawImage(player->getRect(), player->getImage());
 		for (int i = 0; i < zomzom.size(); i++)
 			painter.drawImage(zomzom[i]->getRect(), zomzom[i]->getImage());
@@ -91,34 +90,33 @@ void ZomZomAttack::shoot(QPoint origin, QPoint target) {
 /* When there is a key press event, this method checks for player commands such as movement, game restart, and game exit */
 void ZomZomAttack::keyPressEvent(QKeyEvent *event) {
     switch (event->key()) {
-    /* for testing: case Qt::Key_Q:
+    	case Qt::Key_Q:
 		{
 			health += 100;
-			points += 10000;
 		}
-		break; */
+		break;
 	case Qt::Key_A:
 		{
 			int x = player->getRect().x();
-			for (int i=1; i<=5; i++) player->moveLeft(x--);
+			for (int i=1; i<=10; i++) player->moveLeft(x--);
 		}
 		break;
 	case Qt::Key_D:
 		{
 			int x = player->getRect().x();
-			for (int i=1; i<=5; i++) player->moveRight(x++);
+			for (int i=1; i<=10; i++) player->moveRight(x++);
 		}
 		break;
 	case Qt::Key_W:
 		{
 			int y = player->getRect().y();
-			for (int i=1; i<=5; i++) player->moveTop(y--);
+			for (int i=1; i<=10; i++) player->moveTop(y--);
 		}
 		break;
 	case Qt::Key_S:
 		{
 			int y = player->getRect().y();
-			for (int i=1; i<=5; i++) player->moveBottom(y++);
+			for (int i=1; i<=10; i++) player->moveBottom(y++);
 		}
 		break;
 	case Qt::Key_Space:
@@ -147,9 +145,19 @@ void ZomZomAttack::startGame() {
 	if (!gameStarted) {
 		player->resetState();
 		
+		for (int i = 0; i < zomzom.size(); i++) {
+			delete zomzom[i];
+		}
 		zomzom.clear();
+		for (int i = 0; i < zBullets.size(); i++) {
+			delete zBullets[i];
+		}
 		zBullets.clear();
+		for (int i = 0; i < pBullets.size(); i++) {
+			delete pBullets[i];
+		}
 		pBullets.clear();
+		
 		for (int i = 0; i < 3; i++) zomzom.push_back(new SZom());
 		for (int i = 0; i < 4; i++) zomzom.push_back(new AZom());
 		for (int i = 0; i < 3; i++) zomzom.push_back(new GZom());
@@ -161,7 +169,7 @@ void ZomZomAttack::startGame() {
 		level = 1;
 		gameOver = FALSE;
 		gameStarted = TRUE;
-		timerId = startTimer(10);  
+		timerId = startTimer(35);
 	}
 }
 
@@ -181,6 +189,7 @@ void ZomZomAttack::checkCollision() {
 			for (int j = 0; j < pBullets.size(); j++) {
 				if ((zomzom[i]->getRect()).intersects(pBullets[j]->getRect())) {  
 					zomzom[i]->bulletCollision(points);
+					delete pBullets[j];
 					pBullets.erase(pBullets.begin() + j);
 				}
 			}
@@ -189,11 +198,14 @@ void ZomZomAttack::checkCollision() {
 	for (int i = 0; i < zBullets.size(); i++) {
 		if ((player->getRect()).intersects(zBullets[i]->getRect())) {  
 			health -= 10;
+			delete zBullets[i];
 			zBullets.erase(zBullets.begin() + i);
 		} else {
 			for (int j = 0; j < pBullets.size(); j++) {
 				if ((pBullets[j]->getRect()).intersects(zBullets[i]->getRect())) {
+					delete pBullets[j];
 					pBullets.erase(pBullets.begin() + j);
+					delete zBullets[i];
 					zBullets.erase(zBullets.begin() + i);
 				}
 			}
@@ -209,8 +221,17 @@ void ZomZomAttack::checkCollision() {
 /* This method increases the level by first clearing the vectors and then adding the correct new configuration of ZomZoms */
 void ZomZomAttack::levelIncrease() {
 	level++;
+	for (int i = 0; i < zomzom.size(); i++) {
+		delete zomzom[i];
+	}
 	zomzom.clear();
+	for (int i = 0; i < zBullets.size(); i++) {
+		delete zBullets[i];
+	}
 	zBullets.clear();
+	for (int i = 0; i < pBullets.size(); i++) {
+		delete pBullets[i];
+	}
 	pBullets.clear();
 	
 	if (level == 2) {
