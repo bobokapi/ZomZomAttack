@@ -1,0 +1,355 @@
+Evan Brown
+evanbrow@usc.edu
+
+Purpose:
+The purpose of this program is to create a game using the Qt package where the user can move around and interact with game objects.
+
+Requirements:
+This software must be able to allow the player to control some movement, have different levels, and many objects for the player to interact with.  Two of the object must move towards the player, and one must shoot towards the player.
+
+Classes:
+Object Class
+	This class defines the behavior of the objects in the game that can interact with the player. This class stores the object's speed as an int (nonmoving speed = 0), the direction the object is moving as two ints, the image and position as a QImage and QRect, the number of points the player receives from contact with the object, and the health lost from contact with the object.
+	
+	/* This constructor is only ever called by the constructors of it's child classes. The constructor takes a value for the speed of the Object in order to know whether to initialize direction. It also calls the Object's resetState() function. */
+	Object::Object(int speed)
+
+	/* This method moves the Object based on the Object's speed and checks to see if the Object has hit a boundary and must bounce. It is virtual so that it can be redefined by child classes. */
+	void Object::autoMove(int px, int py)
+
+	/* This method randomizes the location and direction of the Object. It is virtual so that it can be redefined by child classes. */
+	void Object::resetState()
+
+	/* These methods move the object. */
+	void Object::moveBottom(int bottom)
+	void Object::moveTop(int top)
+	void Object::moveLeft(int left)
+	void Object::moveRight(int right)
+
+	/* These methods set the Object's direction. */
+	void Object::setXDir(int x)
+	void Object::setYDir(int y)
+
+	/* Getters */
+	int Object::getXDir()
+	int Object::getYDir()
+	QRect Object::getRect()
+	QImage & Object::getImage()
+
+	/* This method is called when the Object is colliding with the player, and it changes the player's points and health accordingly. It is virtual so that it can be redefined by child classes. */
+	void Object::collision(int& points, int& health) {
+	
+	/* This method awards points and resets the Object. */
+	void Object::bulletCollision(int& points)
+
+Simple Objects:
+	Weapon and MCon inherit from Object.  They represent the simple objects that the player interacts with and each class defines the constructor in order to assign the correct values to speed, dpoints, and dhealth for that type of object.
+	
+	/* This method randomly initializes the attributes of a mysterious construction. It is called when the Object is created and when it collides with the player. */
+	virtual void mysterious()
+	
+	Weapon and MCon redefine the collision method to also reset position and direction. MCon also calls the mysterious method.
+	
+Bullet Class:
+	This class defines the behavior of bullets in the game, and it inherits from Object.
+	
+	/* This constructor takes two points, the origin of the bullet and the target, assigns the origin to the bullet's location, and then calculates the change in x and y based on the speed of the bullet. */
+	Bullet(QPoint origin, QPoint target): Object(10)
+	
+	/* This overwrites the default automove so that the bullet will move correctly in one direction. */
+	virtual void autoMove(int px, int py)
+	
+	/* This method determines whether or not the bullet is done firing (offscreen) */
+	bool isDone()
+	
+ZomZom Class:
+	This is the base class for ZomZom objects in the game. It inherits from Object. This class stores an int for the health of the zomzom.
+	
+	/* This method changes the Object collision method to subtract health form the ZomZom, and deals with ZomZom death by changing the player's points and resetting the ZomZom. */
+	virtual void collision(int& points, int& pHealth)
+	
+	/* This method damages the ZomZom and if it is killed, awards points and resets it. */
+	virtual void bulletCollision(int& points)
+
+Children of ZomZom:
+	The SZom, AZom, GZom, SeekZom, FastSeekZom, and ShootZom classes all inherit from ZomZom. Each of these classes redefines the resetState method to reset health.
+	
+	The SeekZom and FastSeekZom classes overwrite the default automove so that the seeker zomzoms will try to move directly towards the character.
+	virtual void autoMove(int px, int py)
+	
+	The ShootZom class constructor takes a pointer to the ZomZomAttack object as a parameter so that it can call the shoot method from autoMove.
+	ShootZom also contains an int called timeTillShoot which acts as a delay counter for the shooting.
+	/* This method overwrites the default automove so that the shooter zombie will fire a bullet towards the character. */
+	void ShootZom::autoMove(int px, int py)
+
+Player Class:
+	This class governs the player's avatar in the game. This class defines the behavior of the player's avatar in the game. This class stores the image and position as a QImage and QRect.
+	
+	/* The constructor creates a player by assigning the image and rectangle and initializing position. */
+	Player::Player()
+	
+	/* These methods move the player in one direction as long as the player is not next to a boundary. */
+	void Player::moveLeft(int left)
+	void Player::moveRight(int right)
+	void Player::moveTop(int top)
+	void Player::moveBottom(int bottom)
+
+	/* This method moves the player to the center of the screen. */
+	void Player::resetState()
+
+	/* Getters */
+	QRect Player::getRect()
+	QImage & Player::getImage()
+	
+ZomZomAttack Class:
+	This is the definition of the main game widget. This class stores a timerID as an int, a Player, a vector of Objects called zomzom with various children of the Object class (using polymorphism), a vector of Bullets for bullets fired by the player, one for bullets fired by shooter zomzoms, two booleans of whether the game is over and whether it has started, and the player's points and health as ints.
+	
+	/* These signals interact with the displays in the ZomZomAttackWindow class */
+	void scoreChanged(int score);
+	void healthChanged(int health);
+	void levelChanged(int level);
+	
+	/* The constuctor creates the player, initializes the boolean values, and initializes the points, lives, and health */
+	ZomZomAttack::ZomZomAttack(QWidget *parent) : QWidget(parent)
+	
+	/* The destructor deletes the player pointer and clears the vectors */
+	ZomZomAttack::~ZomZomAttack() {
+
+	/* When a paint event is generated, this method checks to see if the game is over and gives an appropriate message or else draws the background, the player, and Objects from the vectors */
+	void ZomZomAttack::paintEvent(QPaintEvent *event)
+
+	/* When there is a timer event, this method automatically moves each Object, checks for collisions, and then calls the repaint() method */
+	void ZomZomAttack::timerEvent(QTimerEvent *event)
+
+	/* When there is a key press event, this method checks for player commands such as movement, game restart, and game exit */
+	void ZomZomAttack::keyPressEvent(QKeyEvent *event)
+	
+	/* When The player clicks, a bullet is fired from the player's location in the direction of the click */
+	void ZomZomAttack::mousePressEvent(QMouseEvent *event);
+
+	/* This method restarts the game by moving the player to the default position and resetting default game values */
+	void ZomZomAttack::startGame()
+
+	/* This method stops the game by killing the timer and setting the gameover boolean to true so that when the paint method happens, the game over message will appear */
+	void ZomZomAttack::stopGame()
+
+	/* This method checks for collisions between the player and zomzoms or zomzom bullets and between zomzoms and player bullets, and then calls the appropriate collision methods. */
+	void ZomZomAttack::checkCollision()
+	
+	/* This method increases the level by first clearing the vectors and then adding the correct new configuration of ZomZoms */
+	void ZomZomAttack::levelIncrease()
+	
+	/* This method adds a bullet to the zomzom bullet vector. It is called by the ShootZom's autoMove method. */
+	void ZomZomAttack::shoot(QPoint origin, QPoint target);
+	
+ZomZomAttackWindow Class:
+	This class defines the window for the game.  It contains three LCD numbers, one each for the score, health, and level.  It also contains the ZomZomAttack object. It uses a QGridLayout to lay out the game, labels, and lcd displays. It uses the connect method to connect the signals from the ZomZomAttack class to the slots in the LCD number displays.
+	
+	/* This method creates a label with a given input */
+	QLabel *ZomZomAttackWindow::createLabel(const QString &text)
+	
+Global Data/Functions:
+Variables
+	There will be no global variables.
+
+Functions
+/*
+This method centers the window.  This method is taken from the Qt breakout game tutorial found here: http://zetcode.com/tutorials/qt4tutorial/breakout/
+*/
+void center(QWidget &widget)
+
+High Level Architecture:
+The Qt GUI displays the score and health above the game action. The game runs based on a timer so that if the player presses a button the game reacts, but the Objects are being continuously redrawn and moved.  Gameover functionality is built into the constant redrawing of the Objects, and the player can restart the game by clicking spacebar if they lose.  The basic backend functionality of the flow of the game is based on the Qt breakout game tutorial found here: http://zetcode.com/tutorials/qt4tutorial/breakout/
+
+User Interface:
+The user interface in this program is the Qt GUI which displays the score, health, and level at the side of the screen. Qt catches the user's W-A-S-D based commands to control the player's movement. When the player clicks, a bullet is fired in the direction of the click.
+
+Test Cases:
+	I plan to test my game by playing it and making sure that all of the functionality works.
+	Potential problems include getting all of the functions to work properly, especially with the Qt display functionality. Getting the movement to work correctly will be challenging.
+	
+	I added a cheat where if you press q it gives you more health so that I could test the game more easily.
+	
+	A particularly hard problem to find was that when a zomzom bullet hit the player and a player's bullet at the same time, the game tried to delete the zomzom bullet twice causing a segmentation fault.
+	
+	
+Art:
+	I made most of the art myself in GIMP. I found some of the backgrounds in my images folder. The level 3 background I found here: http://www.comments-galore.com/import/backgrounds/Skulls/grey-whiteskulls.png
+=======
+Evan Brown
+evanbrow@usc.edu
+
+Purpose:
+The purpose of this program is to create a game using the Qt package where the user can move around and interact with game objects.
+
+Requirements:
+This software must be able to allow the player to control some movement, have different levels, and many objects for the player to interact with.  Two of the object must move towards the player, and one must shoot towards the player.
+
+Classes:
+Object Class
+	This class defines the behavior of the objects in the game that can interact with the player. This class stores the object's speed as an int (nonmoving speed = 0), the direction the object is moving as two ints, the image and position as a QImage and QRect, the number of points the player receives from contact with the object, and the health lost from contact with the object.
+	
+	/* This constructor is only ever called by the constructors of it's child classes. The constructor takes a value for the speed of the Object in order to know whether to initialize direction. It also calls the Object's resetState() function. */
+	Object::Object(int speed)
+
+	/* This method moves the Object based on the Object's speed and checks to see if the Object has hit a boundary and must bounce. It is virtual so that it can be redefined by child classes. */
+	void Object::autoMove(int px, int py)
+
+	/* This method randomizes the location and direction of the Object. It is virtual so that it can be redefined by child classes. */
+	void Object::resetState()
+
+	/* These methods move the object. */
+	void Object::moveBottom(int bottom)
+	void Object::moveTop(int top)
+	void Object::moveLeft(int left)
+	void Object::moveRight(int right)
+
+	/* These methods set the Object's direction. */
+	void Object::setXDir(int x)
+	void Object::setYDir(int y)
+
+	/* Getters */
+	int Object::getXDir()
+	int Object::getYDir()
+	QRect Object::getRect()
+	QImage & Object::getImage()
+
+	/* This method is called when the Object is colliding with the player, and it changes the player's points and health accordingly. It is virtual so that it can be redefined by child classes. */
+	void Object::collision(int& points, int& health) {
+	
+	/* This method awards points and resets the Object. */
+	void Object::bulletCollision(int& points)
+
+Simple Objects:
+	Weapon and MCon inherit from Object.  They represent the simple objects that the player interacts with and each class defines the constructor in order to assign the correct values to speed, dpoints, and dhealth for that type of object.
+	
+	/* This method randomly initializes the attributes of a mysterious construction. It is called when the Object is created and when it collides with the player. */
+	virtual void mysterious()
+	
+	Weapon and MCon redefine the collision method to also reset position and direction. MCon also calls the mysterious method.
+	
+Bullet Class:
+	This class defines the behavior of bullets in the game, and it inherits from Object.
+	
+	/* This constructor takes two points, the origin of the bullet and the target, assigns the origin to the bullet's location, and then calculates the change in x and y based on the speed of the bullet. */
+	Bullet(QPoint origin, QPoint target): Object(10)
+	
+	/* This overwrites the default automove so that the bullet will move correctly in one direction. */
+	virtual void autoMove(int px, int py)
+	
+	/* This method determines whether or not the bullet is done firing (offscreen) */
+	bool isDone()
+	
+ZomZom Class:
+	This is the base class for ZomZom objects in the game. It inherits from Object. This class stores an int for the health of the zomzom.
+	
+	/* This method changes the Object collision method to subtract health form the ZomZom, and deals with ZomZom death by changing the player's points and resetting the ZomZom. */
+	virtual void collision(int& points, int& pHealth)
+	
+	/* This method damages the ZomZom and if it is killed, awards points and resets it. */
+	virtual void bulletCollision(int& points)
+
+Children of ZomZom:
+	The SZom, AZom, GZom, SeekZom, FastSeekZom, and ShootZom classes all inherit from ZomZom. Each of these classes redefines the resetState method to reset health.
+	
+	The SeekZom and FastSeekZom classes overwrite the default automove so that the seeker zomzoms will try to move directly towards the character.
+	virtual void autoMove(int px, int py)
+	
+	The ShootZom class constructor takes a pointer to the ZomZomAttack object as a parameter so that it can call the shoot method from autoMove.
+	ShootZom also contains an int called timeTillShoot which acts as a delay counter for the shooting.
+	/* This method overwrites the default automove so that the shooter zombie will fire a bullet towards the character. */
+	void ShootZom::autoMove(int px, int py)
+
+Player Class:
+	This class governs the player's avatar in the game. This class defines the behavior of the player's avatar in the game. This class stores the image and position as a QImage and QRect.
+	
+	/* The constructor creates a player by assigning the image and rectangle and initializing position. */
+	Player::Player()
+	
+	/* These methods move the player in one direction as long as the player is not next to a boundary. */
+	void Player::moveLeft(int left)
+	void Player::moveRight(int right)
+	void Player::moveTop(int top)
+	void Player::moveBottom(int bottom)
+
+	/* This method moves the player to the center of the screen. */
+	void Player::resetState()
+
+	/* Getters */
+	QRect Player::getRect()
+	QImage & Player::getImage()
+	
+ZomZomAttack Class:
+	This is the definition of the main game widget. This class stores a timerID as an int, a Player, a vector of Objects called zomzom with various children of the Object class (using polymorphism), a vector of Bullets for bullets fired by the player, one for bullets fired by shooter zomzoms, two booleans of whether the game is over and whether it has started, and the player's points and health as ints.
+	
+	/* These signals interact with the displays in the ZomZomAttackWindow class */
+	void scoreChanged(int score);
+	void healthChanged(int health);
+	void levelChanged(int level);
+	
+	/* The constuctor creates the player, initializes the boolean values, and initializes the points, lives, and health */
+	ZomZomAttack::ZomZomAttack(QWidget *parent) : QWidget(parent)
+	
+	/* The destructor deletes the player pointer and clears the vectors */
+	ZomZomAttack::~ZomZomAttack() {
+
+	/* When a paint event is generated, this method checks to see if the game is over and gives an appropriate message or else draws the background, the player, and Objects from the vectors */
+	void ZomZomAttack::paintEvent(QPaintEvent *event)
+
+	/* When there is a timer event, this method automatically moves each Object, checks for collisions, and then calls the repaint() method */
+	void ZomZomAttack::timerEvent(QTimerEvent *event)
+
+	/* When there is a key press event, this method checks for player commands such as movement, game restart, and game exit */
+	void ZomZomAttack::keyPressEvent(QKeyEvent *event)
+	
+	/* When The player clicks, a bullet is fired from the player's location in the direction of the click */
+	void ZomZomAttack::mousePressEvent(QMouseEvent *event);
+
+	/* This method restarts the game by moving the player to the default position and resetting default game values */
+	void ZomZomAttack::startGame()
+
+	/* This method stops the game by killing the timer and setting the gameover boolean to true so that when the paint method happens, the game over message will appear */
+	void ZomZomAttack::stopGame()
+
+	/* This method checks for collisions between the player and zomzoms or zomzom bullets and between zomzoms and player bullets, and then calls the appropriate collision methods. */
+	void ZomZomAttack::checkCollision()
+	
+	/* This method increases the level by first clearing the vectors and then adding the correct new configuration of ZomZoms */
+	void ZomZomAttack::levelIncrease()
+	
+	/* This method adds a bullet to the zomzom bullet vector. It is called by the ShootZom's autoMove method. */
+	void ZomZomAttack::shoot(QPoint origin, QPoint target);
+	
+ZomZomAttackWindow Class:
+	This class defines the window for the game.  It contains three LCD numbers, one each for the score, health, and level.  It also contains the ZomZomAttack object. It uses a QGridLayout to lay out the game, labels, and lcd displays. It uses the connect method to connect the signals from the ZomZomAttack class to the slots in the LCD number displays.
+	
+	/* This method creates a label with a given input */
+	QLabel *ZomZomAttackWindow::createLabel(const QString &text)
+	
+Global Data/Functions:
+Variables
+	There will be no global variables.
+
+Functions
+/*
+This method centers the window.  This method is taken from the Qt breakout game tutorial found here: http://zetcode.com/tutorials/qt4tutorial/breakout/
+*/
+void center(QWidget &widget)
+
+High Level Architecture:
+The Qt GUI displays the score and health above the game action. The game runs based on a timer so that if the player presses a button the game reacts, but the Objects are being continuously redrawn and moved.  Gameover functionality is built into the constant redrawing of the Objects, and the player can restart the game by clicking spacebar if they lose.  The basic backend functionality of the flow of the game is based on the Qt breakout game tutorial found here: http://zetcode.com/tutorials/qt4tutorial/breakout/
+
+User Interface:
+The user interface in this program is the Qt GUI which displays the score, health, and level at the side of the screen. Qt catches the user's W-A-S-D based commands to control the player's movement. When the player clicks, a bullet is fired in the direction of the click.
+
+Test Cases:
+	I plan to test my game by playing it and making sure that all of the functionality works.
+	Potential problems include getting all of the functions to work properly, especially with the Qt display functionality. Getting the movement to work correctly will be challenging.
+	
+	I added a cheat where if you press q it gives you more health so that I could test the game more easily.
+	
+	A particularly hard problem to find was that when a zomzom bullet hit the player and a player's bullet at the same time, the game tried to delete the zomzom bullet twice causing a segmentation fault.
+	
+	
+Art:
+	I made most of the art myself in GIMP. I found some of the backgrounds in my images folder. The level 3 background I found here: http://www.comments-galore.com/import/backgrounds/Skulls/grey-whiteskulls.png
